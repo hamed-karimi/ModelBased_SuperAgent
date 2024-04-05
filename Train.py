@@ -37,9 +37,8 @@ class Train:
                 state = deepcopy(new_state)
 
             episode_loss += transition.optimize()
-            transition.lr_scheduler.step()
 
             self.tensor_writer.add_scalar("Loss", episode_loss / self.step_num, episode)
-            self.tensor_writer.add_scalar("lr", transition.lr_scheduler.get_last_lr(), episode)
+            self.tensor_writer.add_scalar("lr", transition.lr_scheduler.get_last_lr()[0], episode)
 
         transition.save(self.res_folder)

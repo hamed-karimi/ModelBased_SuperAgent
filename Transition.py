@@ -91,6 +91,7 @@ class Transition:
         # for param in self.transition_net.parameters():
         #     param.grad.data.clamp_(-1, 1)
         self.optimizer.step()
+        self.lr_scheduler.step()
         return loss
 
     def save(self, path):
