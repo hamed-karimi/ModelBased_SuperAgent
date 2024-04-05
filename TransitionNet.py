@@ -62,4 +62,4 @@ class TransitionNet(nn.Module):
         x = torch.concat([y, mental_states, states_params], dim=1)
         y = self.fc(x)
 
-        return y
+        return y  # 0: reward 1,2: mental_state

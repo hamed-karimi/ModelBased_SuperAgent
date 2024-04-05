@@ -4,6 +4,7 @@ import torch
 import numpy as np
 from torch.nn import init
 from torch import nn, optim
+
 from TransitionNet import TransitionNet, weights_init_orthogonal
 from gymnasium import spaces
 import math
@@ -33,6 +34,10 @@ class Transition:
         self.epsilon_range = [.95, .05]
         self.batch_size = params.BATCH_SIZE
         self.optimizer = optim.Adam(self.transition_net.parameters(), lr=params.INIT_LEARNING_RATE)
+        self.lr_scheduler = optim.lr_scheduler.StepLR(self.optimizer,
+                                                      self.params.LR_SCHEDULER_STEP,
+                                                      gamma=0.3,
+                                                      last_epoch=-1)
         self.criterion = nn.MSELoss()
         self.memory = ReplayMemory(capacity=self.params.MEMORY_CAPACITY)
 
@@ -86,7 +91,6 @@ class Transition:
         # for param in self.transition_net.parameters():
         #     param.grad.data.clamp_(-1, 1)
         self.optimizer.step()
-
         return loss
 
     def save(self, path):

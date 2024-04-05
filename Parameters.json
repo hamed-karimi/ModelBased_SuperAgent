@@ -17,7 +17,7 @@
     "SAMPLE_SIZE": 1024,
     "GAMMA" : 0.99,
     "INIT_LEARNING_RATE": 0.0007,
-    "LEARNING_RATE_DECAY": 0,
+    "LR_SCHEDULER_STEP": 5e05,
     "PRINT_REWARD_FREQ": 10,
     "TEST_POLICY_NET": true,
     "STORE_DIR": "./",
