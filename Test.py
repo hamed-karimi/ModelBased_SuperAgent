@@ -41,6 +41,7 @@ import matplotlib.pyplot as plt
 class Test:
     def __init__(self, utils):
         self.params = utils.params
+        self.device = 'cuda' if ((self.params.DEVICE == 'auto' or self.params.DEVICE == 'cuda') and torch.cuda.is_available()) else 'cpu'
         self.res_folder = utils.res_folder
         self.transition = self.load_model(self.params)
         self.height = utils.params.HEIGHT
@@ -168,17 +169,11 @@ class Test:
         plt.close()
 
     def load_model(self, params):
-        model_path = os.path.join(self.res_folder, 'model.pt')
-        model_parameters = torch.load(model_path)
+        if params.USE_PRETRAINED:
+            model_path = os.path.join('./pretrained', 'model.pt')
+        else:
+            model_path = os.path.join(self.res_folder, 'model.pt')
+        model_parameters = torch.load(model_path, map_location=self.device)
         transition = Transition(params)
         transition.transition_net.load_state_dict(model_parameters)
         return transition
-
-    # @staticmethod
-    # def get_qfunction_selected_goal_map(state,
-    #                                     agent: Transition):
-    #
-    #     goal_map, goal_location = agent.get_action(state=state, episode=0, epsilon=-1)  # get the goal map based on Q-values
-    #     new_state, reward, terminated, truncated, _ = environment.step(goal_map)
-    #
-    #     return torch.tensor(rho).mean()

@@ -19,6 +19,7 @@ def get_random_action(state: list):
     goal_index = np.random.randint(low=0, high=all_object_locations.shape[0], size=())
     goal_location = all_object_locations[goal_index, 1:]
 
+    # goal_location = all_object_locations[0, 1:] # ERASE THIS!!!!!
     goal_map[goal_location[0], goal_location[1]] = 1
     return goal_map
 
@@ -91,7 +92,8 @@ class Transition:
         # for param in self.transition_net.parameters():
         #     param.grad.data.clamp_(-1, 1)
         self.optimizer.step()
-        self.lr_scheduler.step()
+        if self.lr_scheduler.get_last_lr()[0] > 9e-6:
+            self.lr_scheduler.step()
         return loss
 
     def save(self, path):

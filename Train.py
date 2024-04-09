@@ -10,12 +10,11 @@ import numpy as np
 class Train:
     def __init__(self, utils):
         self.params = utils.params
-        self.root_dir = self.params.STORE_DIR
         self.episode_num = int(self.params.EPISODE_NUM)
         self.batch_size = int(self.params.BATCH_SIZE)
         self.step_num = int(self.params.EPISODE_STEPS)
         self.device = self.params.DEVICE
-        self.res_folder, self.res_name = utils.make_res_folder(root_dir=self.root_dir)
+        self.res_folder = utils.res_folder
         self.log_dir = os.path.join(self.res_folder, 'log')
         self.tensor_writer = SummaryWriter()
         # self.tensorboard_call_back = CallBack(res_dir=self.res_folder, log_freq=self.params.PRINT_REWARD_FREQ, )

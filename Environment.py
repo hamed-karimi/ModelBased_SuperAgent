@@ -46,7 +46,7 @@ class Environment(gym.Env):
 
     def sample(self):  # return size: ndarray (198, )
         self._env_map = np.zeros_like(self._env_map, dtype=int)
-        self._init_random_map()
+        self._init_random_map(reset=True)
         self._init_random_mental_states()
         self._init_random_parameters()
         # flat_observation = self._flatten_observation()
@@ -128,7 +128,7 @@ class Environment(gym.Env):
             return
         reached_object_type = np.argwhere(self._env_map[1:, self._agent_location[0], self._agent_location[1]])[0, 0]
         self.each_type_object_num[reached_object_type] += 1
-        self._init_random_map(object_num_on_map=self.each_type_object_num)  # argument is kind of redundant
+        self._init_random_map(object_num_on_map=self.each_type_object_num, reset=False)  # argument is kind of redundant
         self._env_map[reached_object_type + 1, self._agent_location[0], self._agent_location[1]] = 0
         self.each_type_object_num[reached_object_type] -= 1
 
@@ -174,7 +174,7 @@ class Environment(gym.Env):
 
         return each_type_object_num
 
-    def _init_random_map(self, object_num_on_map=None):  # add agent location
+    def _init_random_map(self, object_num_on_map=None, reset=False):  # add agent location
         if self._env_map[0, :, :].sum() == 0:  # no agent on map
             self._agent_location = np.random.randint(low=0, high=self.height, size=(2,))
             self._env_map[0, self._agent_location[0], self._agent_location[1]] = 1
@@ -184,15 +184,21 @@ class Environment(gym.Env):
             self.each_type_object_num = self._init_object_num_on_map()
         else:
             self.each_type_object_num = object_num_on_map
+
+        ###  ERASE THESE
+        # object_num_already_on_map = [1, 0]
+        # self._env_map[1, self._agent_location[0], self._agent_location[1]] = 1
+        ####
         object_num_to_init = self.each_type_object_num - object_num_already_on_map
 
         object_count = 0
+        check_no_object_layer_start = 1 if reset else 0
         for obj_type in range(self.object_type_num):
             for at_obj in range(object_num_to_init[obj_type]):
                 while True:
                     sample_location = np.random.randint(low=0, high=[self.height, self.width],
                                                         size=(self.object_type_num,))
-                    if self._env_map[:, sample_location[0], sample_location[1]].sum() == 0:
+                    if self._env_map[check_no_object_layer_start:, sample_location[0], sample_location[1]].sum() == 0:
                         self._env_map[1 + obj_type, sample_location[0], sample_location[1]] = 1
                         break
 

@@ -7,7 +7,7 @@ from datetime import datetime
 
 class Utils:
     def __init__(self):
-        self.res_folder = None
+        self.res_folder = self.make_res_folder()
         with open('./Parameters.json', 'r') as json_file:
             self._params = json.load(json_file,
                                      object_hook=lambda d: SimpleNamespace(**d))
@@ -29,7 +29,7 @@ class Utils:
 
         self.res_folder = dirname
         shutil.copy('./Parameters.json', self.res_folder)
-        return dirname, folder
+        return dirname
 
     # def get_log_dir(self):
     #     self._log_dir = os.path.join(self.res_folder, 'log')
