@@ -104,69 +104,70 @@ class Test:
     def get_goal_directed_actions(self):
         row_num = 5
         col_num = 5
-        fig, ax = plt.subplots(row_num, col_num, figsize=(15, 12))
-        for setting_id, outputs in enumerate(self.next_agent_and_environment()):
-            tensors, each_type_object_num, object_locations = outputs
-            init_map, init_mental_state, states_params, goal_map, reward, next_map, next_mental_state = tensors
-            agent_location = np.argwhere(init_map[0, :, :]).flatten()
-            goal_location = np.argwhere(goal_map).flatten()
-            selected_goal_type = np.argwhere(init_map[:, goal_location[0], goal_location[1]]).min().item()
-            selected_goal_type = 2 if selected_goal_type == 0 else selected_goal_type - 1
-            r = setting_id // col_num
-            c = setting_id % col_num
+        for test_id in range(3):
+            fig, ax = plt.subplots(row_num, col_num, figsize=(15, 12))
+            for setting_id, outputs in enumerate(self.next_agent_and_environment()):
+                tensors, each_type_object_num, object_locations = outputs
+                init_map, init_mental_state, states_params, goal_map, reward, next_map, next_mental_state = tensors
+                agent_location = np.argwhere(init_map[0, :, :]).flatten()
+                goal_location = np.argwhere(goal_map).flatten()
+                selected_goal_type = np.argwhere(init_map[:, goal_location[0], goal_location[1]]).min().item()
+                selected_goal_type = 2 if selected_goal_type == 0 else selected_goal_type - 1
+                r = setting_id // col_num
+                c = setting_id % col_num
 
-            ax[r, c].set_xticks([])
-            ax[r, c].set_yticks([])
-            ax[r, c].invert_yaxis()
+                ax[r, c].set_xticks([])
+                ax[r, c].set_yticks([])
+                ax[r, c].invert_yaxis()
 
-            shape_map = self.get_object_shape_dictionary(object_locations, agent_location, each_type_object_num)
+                shape_map = self.get_object_shape_dictionary(object_locations, agent_location, each_type_object_num)
 
-            with torch.no_grad():
-                pred_reward_mental_state = self.transition.transition_net(init_map.unsqueeze(0),
-                                                                          goal_map.unsqueeze(0),
-                                                                          init_mental_state.unsqueeze(0),
-                                                                          states_params.unsqueeze(0)).cpu()
-                pred_reward = pred_reward_mental_state[0, 0]
-                pred_mental_state = pred_reward_mental_state[0, 1:]
+                with torch.no_grad():
+                    pred_reward_mental_state = self.transition.transition_net(init_map.unsqueeze(0),
+                                                                              goal_map.unsqueeze(0),
+                                                                              init_mental_state.unsqueeze(0),
+                                                                              states_params.unsqueeze(0)).cpu()
+                    pred_reward = pred_reward_mental_state[0, 0]
+                    pred_mental_state = pred_reward_mental_state[0, 1:]
 
-            for i in range(self.height):
-                for j in range(self.width):
-                    if (torch.tensor([i, j]) == agent_location).all():
-                        spot_shape = shape_map[tuple(goal_location.tolist())]
-                        goal_type = selected_goal_type
-                        face_color = self.color_options[goal_type]
-                        alpha = .4
-                    elif tuple([i, j]) in shape_map.keys():
-                        spot_shape = shape_map[tuple([i, j])]
-                        ind = np.argwhere((object_locations[:, 1:] == [i, j]).all(axis=1)).min()
-                        goal_type = object_locations[ind, 0]
-                        face_color = 'none'
-                        alpha = 1
-                    else:
-                        spot_shape = '_'
-                        goal_type = 2
-                        alpha = 1
-                        face_color = self.color_options[goal_type]
+                for i in range(self.height):
+                    for j in range(self.width):
+                        if (torch.tensor([i, j]) == agent_location).all():
+                            spot_shape = shape_map[tuple(goal_location.tolist())]
+                            goal_type = selected_goal_type
+                            face_color = self.color_options[goal_type]
+                            alpha = .4
+                        elif tuple([i, j]) in shape_map.keys():
+                            spot_shape = shape_map[tuple([i, j])]
+                            ind = np.argwhere((object_locations[:, 1:] == [i, j]).all(axis=1)).min()
+                            goal_type = object_locations[ind, 0]
+                            face_color = 'none'
+                            alpha = 1
+                        else:
+                            spot_shape = '_'
+                            goal_type = 2
+                            alpha = 1
+                            face_color = self.color_options[goal_type]
 
-                    # goal_type = 2 if goal_type == 0 else goal_type - 1
-                    size = 10 if spot_shape == '.' else 100
-                    ax[r, c].scatter(j, i,
-                                     marker=spot_shape,
-                                     s=size,
-                                     alpha=alpha,
-                                     edgecolor=self.color_options[goal_type],
-                                     facecolor=face_color)
+                        # goal_type = 2 if goal_type == 0 else goal_type - 1
+                        size = 10 if spot_shape == '.' else 100
+                        ax[r, c].scatter(j, i,
+                                         marker=spot_shape,
+                                         s=size,
+                                         alpha=alpha,
+                                         edgecolor=self.color_options[goal_type],
+                                         facecolor=face_color)
 
-            ax[r, c].set_title(self.get_figure_title([init_mental_state,
-                                                      next_mental_state,
-                                                      reward,
-                                                      pred_mental_state,
-                                                      pred_reward]), fontsize=8)
-            ax[r, c].set(adjustable='box', aspect='equal')
+                ax[r, c].set_title(self.get_figure_title([init_mental_state,
+                                                          next_mental_state,
+                                                          reward,
+                                                          pred_mental_state,
+                                                          pred_reward]), fontsize=8)
+                ax[r, c].set(adjustable='box', aspect='equal')
 
-        plt.tight_layout(pad=0.1, w_pad=6, h_pad=1)
-        fig.savefig('{0}/{1}'.format(self.res_folder, 'test.png'))
-        plt.close()
+            plt.tight_layout(pad=0.1, w_pad=6, h_pad=1)
+            fig.savefig('{0}/{1}_{2}.png'.format(self.res_folder, 'test', test_id))
+            plt.close()
 
     def load_model(self, params):
         if params.USE_PRETRAINED:
