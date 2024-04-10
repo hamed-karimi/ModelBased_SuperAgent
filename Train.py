@@ -7,6 +7,7 @@ from Environment import Environment
 from ReplayMemory import ReplayMemory
 import numpy as np
 
+
 class Train:
     def __init__(self, utils):
         self.params = utils.params

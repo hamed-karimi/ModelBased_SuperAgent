@@ -48,6 +48,8 @@ class TransitionNet(nn.Module):
             nn.Linear(in_features=64,
                       out_features=32), nn.ReLU(),
             nn.Linear(in_features=32,
+                      out_features=16), nn.ReLU(),
+            nn.Linear(in_features=16,
                       out_features=3)).to(self.device)
 
     def forward(self, env_map, goal_map, mental_states, states_params):

@@ -14,9 +14,7 @@ class Environment(gym.Env):
         self.metadata = {"render_modes": None}
         self.object_type_num = params.OBJECT_TYPE_NUM
         self._no_reward_threshold = -5
-        self._death_threshold = 25
         self._goal_selection_step = 0
-        self.cost_of_non_object_location = 100
         self._env_map = np.zeros((1 + self.object_type_num, self.height, self.width), dtype=int)
         self._mental_states = np.empty((self.object_type_num,), dtype=np.float64)
         self._mental_states_slope = np.empty((self.object_type_num,), dtype=np.float64)
@@ -50,7 +48,7 @@ class Environment(gym.Env):
         self._init_random_mental_states()
         self._init_random_parameters()
         # flat_observation = self._flatten_observation()
-        observation = self._get_observation()
+        observation = self.get_observation()
         return observation
 
     def reset(self, seed=None, options=None):
@@ -87,7 +85,7 @@ class Environment(gym.Env):
         # be careful about this, we might need to try to have always (or after 5 goal selection step) terminated=False,
         # and just maximize the reward.
         # (observation, reward, terminated, truncated, info)
-        return self._get_observation(), reward, terminated, truncated, dict()
+        return self.get_observation(), reward, terminated, truncated, dict()
 
     def render(self):
         return None
@@ -112,7 +110,7 @@ class Environment(gym.Env):
 
         return cost
 
-    def _get_observation(self):
+    def get_observation(self):
         observation = [self._env_map.copy(), self._mental_states.copy()]
         for i in range(len(self._environment_states_parameters)):
             observation.append(self._environment_states_parameters[i].copy())
@@ -232,14 +230,19 @@ class Environment(gym.Env):
     def init_environment_for_test(self, agent_location, mental_states, mental_states_slope,
                                   object_reward):  # mental_states_parameters
         self._env_map[0, :, :] = 0  # np.zeros_like(self._env_map[0, :, :], dtype=int)
+        self._agent_location = np.array(agent_location)
         self._env_map[0, agent_location[0], agent_location[1]] = 1
         each_type_object_num = None
         if hasattr(self, 'each_type_object_num'):
             each_type_object_num = self.each_type_object_num
         self._init_random_map(each_type_object_num)
-        object_locations = np.argwhere(self._env_map[1:, :, :])
-        self._mental_states = np.array(mental_states)
-        # self._environment_states_parameters = [self._mental_states_slope, self._environment_object_reward]
-        self._environment_states_parameters[0] = np.array(mental_states_slope)
-        self._environment_states_parameters[1] = np.array(object_reward)
-        return self._env_map, self._get_observation(), object_locations, self.each_type_object_num
+        # object_locations = np.argwhere(self._env_map[1:, :, :])
+
+        self._mental_states = np.array(mental_states, dtype=float)
+        self._environment_states_parameters[0][:] = np.array(mental_states_slope, dtype=float)
+        self._environment_states_parameters[1][:] = np.array(object_reward, dtype=float)
+
+    def get_possible_goal_locations(self):
+        object_locations = np.argwhere(self._env_map[1:, :, :])[:, 1:]
+        agent_locations = np.argwhere(self._env_map[0, :, :])
+        return object_locations, agent_locations
