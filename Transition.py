@@ -92,8 +92,8 @@ class Transition:
         # for param in self.transition_net.parameters():
         #     param.grad.data.clamp_(-1, 1)
         self.optimizer.step()
-        if self.lr_scheduler.get_last_lr()[0] > 9e-6:
-            self.lr_scheduler.step()
+        # if self.lr_scheduler.get_last_lr()[0] > 9e-6:
+        self.lr_scheduler.step()
         return loss
 
     def save(self, path):
