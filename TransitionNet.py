@@ -50,8 +50,8 @@ class TransitionNet(nn.Module):
             nn.Linear(in_features=32,
                       out_features=16), nn.ReLU()).to(self.device)
 
-        self.reward_mental_states_dt_readout = nn.Linear(in_features=16, out_features=4)
-        self.rewarding_readout = nn.Linear(in_features=16, out_features=1)
+        self.reward_mental_states_dt_readout = nn.Linear(in_features=16, out_features=4).to(self.device)
+        self.rewarding_readout = nn.Linear(in_features=16, out_features=1).to(self.device)
         # self.sigmoid = nn.Sigmoid()
 
     def forward(self, env_map, goal_map, mental_states, states_params):
