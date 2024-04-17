@@ -62,7 +62,11 @@ class Test:
          next_mental_state,
          reward,
          pred_mental_state,
-         pred_reward] = parameters
+         pred_reward,
+         dt,
+         rewarding,
+         pred_dt,
+         pred_rewarding] = parameters
         title = r''
         for i in range(len(init_mental_state)):
             title += r"$n^{0}_{1}:{2:.2f}$, ".format('{0}', '{' + self.objects_color_name[i] + '}',
@@ -71,13 +75,14 @@ class Test:
         for i in range(len(next_mental_state)):
             title += r"$n^{0}_{1}:{2:.2f}$, ".format('{1}', '{' + self.objects_color_name[i] + '}',
                                                      next_mental_state[i])
-        title += r"rw:{0:.2f}".format(reward)
+        title += r"r:{0:.2f}, ".format(reward)
+        title += r"t:{0:.2f}, is_r:{1}".format(dt, rewarding)
         title += "\n"
         for i in range(len(pred_mental_state)):
             title += r"${0}^{1}_{2}:{3:.2f}$, ".format('{pn}', '{1}', '{' + self.objects_color_name[i] + '}',
                                                        pred_mental_state[i])
-        title += r"prw:{0:.2f}".format(pred_reward)
-
+        title += r"pr:{0:.2f}, ".format(pred_reward)
+        title += r"pt:{0:.2f}, pis_r:{1:.2f}".format(pred_dt, pred_rewarding)
         return title
 
     def get_title(self, shape, next_mental_state, next_reward, pred_mental_state, pred_reward):
@@ -132,10 +137,10 @@ class Test:
             goal_map = get_random_action(state)
             object_locations = np.stack(np.where(state[0][1:, :, :]), axis=1)
             each_type_object_num = environment.each_type_object_num
-            new_state, reward, terminated, truncated, _ = environment.step(goal_map)
+            new_state, reward, terminated, truncated, info = environment.step(goal_map)
 
             # init_map, init_mental_state, states_params, goal_map, reward, next_map, next_mental_state
-            tensors = get_experience_tensor(state, goal_map, reward, new_state)
+            tensors = get_experience_tensor(state, goal_map, reward, new_state, info)
             yield tensors, each_type_object_num, object_locations
 
     def test_random_goal_selection(self):
@@ -145,7 +150,7 @@ class Test:
             fig, ax = plt.subplots(row_num, col_num, figsize=(15, 12))
             for setting_id, outputs in enumerate(self.next_environment()):
                 tensors, each_type_object_num, object_locations = outputs
-                init_map, init_mental_state, states_params, goal_map, reward, next_map, next_mental_state = tensors
+                init_map, init_mental_state, states_params, goal_map, reward, next_map, next_mental_state, dt, rewarding = tensors
                 agent_location = np.argwhere(init_map[0, :, :]).flatten()
                 goal_location = np.argwhere(goal_map).flatten()
                 selected_goal_type = np.argwhere(init_map[:, goal_location[0], goal_location[1]]).min().item()
@@ -160,12 +165,17 @@ class Test:
                 shape_map = self.get_object_shape_dictionary(object_locations, agent_location, each_type_object_num)
 
                 with torch.no_grad():
-                    pred_reward_mental_state = self.transition.transition_net(init_map.unsqueeze(0),
-                                                                              goal_map.unsqueeze(0),
-                                                                              init_mental_state.unsqueeze(0),
-                                                                              states_params.unsqueeze(0)).cpu()
-                    pred_reward = pred_reward_mental_state[0, 0]
-                    pred_mental_state = pred_reward_mental_state[0, 1:]
+                    pred_reward_mental_state_dt, \
+                        pred_rewarding = self.transition.transition_net(init_map.unsqueeze(0),
+                                                                        goal_map.unsqueeze(0),
+                                                                        init_mental_state.unsqueeze(0),
+                                                                        states_params.unsqueeze(0))
+                    pred_reward_mental_state_dt = pred_reward_mental_state_dt.cpu()
+                    pred_rewarding = pred_rewarding.cpu().item()
+
+                    pred_reward = pred_reward_mental_state_dt[0, 0]
+                    pred_mental_state = pred_reward_mental_state_dt[0, 1:3]
+                    pred_dt = pred_reward_mental_state_dt[0, 3].item()
 
                 for i in range(self.height):
                     for j in range(self.width):
@@ -199,7 +209,11 @@ class Test:
                                                               next_mental_state,
                                                               reward,
                                                               pred_mental_state,
-                                                              pred_reward]), fontsize=8)
+                                                              pred_reward,
+                                                              dt,
+                                                              rewarding,
+                                                              pred_dt,
+                                                              pred_rewarding]), fontsize=8)
                 ax[r, c].set(adjustable='box', aspect='equal')
 
             plt.tight_layout(pad=0.1, w_pad=6, h_pad=1)
@@ -298,7 +312,7 @@ class Test:
                                                                            states_params[0][1],
                                                                            states_params[0][2],
                                                                            states_params[0][3],
-                                                                           setting_id+1))
+                                                                           setting_id + 1))
                 plt.close()
 
     def load_model(self, params):

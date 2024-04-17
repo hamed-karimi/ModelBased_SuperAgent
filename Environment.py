@@ -59,12 +59,14 @@ class Environment(gym.Env):
         return sample_observation, dict()
 
     def step(self, goal_map):
+        assert goal_map.shape == self._env_map[0].shape, "invalid goal_map size"
         self._goal_selection_step += 1
         goal_location = np.argwhere(goal_map).flatten()  # location of 1 in map
+        on_object = self._env_map[:, goal_location[0], goal_location[1]].sum() == 2  # agent on an object
         diagonal_steps, straight_steps = self._get_agent_distance_to_location(goal_location[0], goal_location[1])
         step_length = math.sqrt(2) * diagonal_steps + straight_steps
         self._update_agent_locations(goal_location)
-        dt = np.array(1) if step_length < 1.4 else step_length
+        dt = 1. if step_length < 1.4 else step_length
         object_reward = self._env_map[1:,
                         self._agent_location[0],
                         self._agent_location[1]] * self._environment_object_reward
@@ -82,10 +84,18 @@ class Environment(gym.Env):
 
         terminated = False
         truncated = False
+        info = dict()
+        info['dt'] = dt
+        info['rewarding'] = mental_states_reward > 0
+        if diagonal_steps + straight_steps == 0 and not on_object:
+            info['object'] = False
+        else:
+            info['object'] = True
+
         # be careful about this, we might need to try to have always (or after 5 goal selection step) terminated=False,
         # and just maximize the reward.
         # (observation, reward, terminated, truncated, info)
-        return self.get_observation(), reward, terminated, truncated, dict()
+        return self.get_observation(), reward, terminated, truncated, info
 
     def render(self):
         return None
@@ -224,7 +234,7 @@ class Environment(gym.Env):
                                        high=attr_range[1],
                                        size=(size,))
         if only_positive:
-            random_vec = np.abs(random_vec)
+            random_vec = np.maximum(random_vec, 0)
         return random_vec
 
     def init_environment_for_test(self, agent_location, mental_states, mental_states_slope,

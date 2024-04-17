@@ -39,7 +39,8 @@ class Transition:
                                                       self.params.LR_SCHEDULER_STEP,
                                                       gamma=0.3,
                                                       last_epoch=-1)
-        self.criterion = nn.MSELoss()
+        self.criterion1 = nn.MSELoss()
+        self.criterion2 = nn.BCEWithLogitsLoss(reduction='sum')
         self.memory = ReplayMemory(capacity=self.params.MEMORY_CAPACITY)
 
     def _get_batch_tensor(self, batch):
@@ -48,6 +49,7 @@ class Transition:
         # 'next_map', 'next_mental_state'
         assert type(batch) is self.memory.Transition, 'batch should be a memory Transition name tuple'
         init_map, init_mental_state, states_params, goal_map, reward, next_map, next_mental_state = [], [], [], [], [], [], []
+        dt, rewarding = [], []
         for i in range(len(batch.init_map)):
             init_map.append(batch.init_map[i])
             init_mental_state.append(batch.init_mental_state[i])
@@ -56,6 +58,8 @@ class Transition:
             reward.append(batch.reward[i])
             next_map.append(batch.next_map[i])
             next_mental_state.append(batch.next_mental_state[i])
+            dt.append(batch.dt[i])
+            rewarding.append(batch.rewarding[i])
         init_map = torch.stack(init_map, dim=0)
         init_mental_state = torch.stack(init_mental_state, dim=0)
         states_params = torch.stack(states_params, dim=0)
@@ -63,7 +67,9 @@ class Transition:
         reward = torch.stack(reward, dim=0)
         next_map = torch.stack(next_map, dim=0)
         next_mental_state = torch.stack(next_mental_state, dim=0)
-        return init_map, init_mental_state, states_params, goal_map, reward, next_map, next_mental_state
+        dt = torch.stack(dt, dim=0)
+        rewarding = torch.stack(rewarding, dim=0)
+        return init_map, init_mental_state, states_params, goal_map, reward, next_map, next_mental_state, dt, rewarding
 
     def save_experience(self, *args):
         self.memory.push_experience(*args)
@@ -81,12 +87,20 @@ class Transition:
             goal_map, \
             reward, \
             next_map, \
-            next_mental_state = self._get_batch_tensor(sample)
+            next_mental_state, \
+            dt, \
+            rewarding_object = self._get_batch_tensor(sample)
 
-        pred_reward_mental_state = self.transition_net(init_map, goal_map, init_mental_state, states_params).cpu()
+        pred_reward_mental_state_dt, pred_rewarding = self.transition_net(init_map, goal_map, init_mental_state,
+                                                                          states_params)
+        pred_reward_mental_state_dt = pred_reward_mental_state_dt.cpu()
+        pred_rewarding = pred_rewarding.cpu()
 
-        loss = self.criterion(pred_reward_mental_state,
-                              torch.cat([reward.unsqueeze(1), next_mental_state], dim=1))
+        loss1 = self.criterion1(pred_reward_mental_state_dt,
+                                torch.cat([reward.unsqueeze(1), next_mental_state, dt.unsqueeze(1)], dim=1))
+        loss2 = self.criterion2(pred_rewarding, rewarding_object.unsqueeze(1))
+        loss = loss1 + loss2
+
         self.optimizer.zero_grad()
         loss.backward()
         # for param in self.transition_net.parameters():

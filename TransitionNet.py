@@ -48,9 +48,11 @@ class TransitionNet(nn.Module):
             nn.Linear(in_features=64,
                       out_features=32), nn.ReLU(),
             nn.Linear(in_features=32,
-                      out_features=16), nn.ReLU(),
-            nn.Linear(in_features=16,
-                      out_features=3)).to(self.device)
+                      out_features=16), nn.ReLU()).to(self.device)
+
+        self.reward_mental_states_dt_readout = nn.Linear(in_features=16, out_features=4)
+        self.rewarding_readout = nn.Linear(in_features=16, out_features=1)
+        # self.sigmoid = nn.Sigmoid()
 
     def forward(self, env_map, goal_map, mental_states, states_params):
         x = torch.cat([env_map, goal_map.unsqueeze(1)], dim=1).to(self.device)
@@ -63,5 +65,7 @@ class TransitionNet(nn.Module):
         y = F.relu(self.linear(y0))
         x = torch.concat([y, mental_states, states_params], dim=1)
         y = self.fc(x)
+        reward_mental_states_dt = self.reward_mental_states_dt_readout(y)
+        rewarding = self.rewarding_readout(y)
 
-        return y  # 0: reward 1,2: mental_state
+        return reward_mental_states_dt, rewarding  # 0: reward 1,2: mental_state

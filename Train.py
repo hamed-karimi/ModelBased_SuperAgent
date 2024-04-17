@@ -30,10 +30,10 @@ class Train:
             episode_loss = 0
             for step in range(self.step_num):
                 goal_map = get_random_action(state=state)
-                new_state, reward, terminated, truncated, _ = environment.step(goal_map)
+                new_state, reward, terminated, truncated, info = environment.step(goal_map)
 
                 # ('init_state', 'goal_map', 'reward', 'next_state')
-                transition.save_experience(state, goal_map, reward, new_state)
+                transition.save_experience(state, goal_map, reward, new_state, info)
                 state = deepcopy(new_state)
 
             episode_loss += transition.optimize()

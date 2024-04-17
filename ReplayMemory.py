@@ -8,7 +8,8 @@ def get_experience_tensor(*args):
     transition_args = (torch.Tensor(args[0][0]), torch.Tensor(args[0][1]),
                        torch.Tensor(np.array(args[0][2:])).flatten(),
                        torch.Tensor(args[1]), torch.Tensor(args[2]),
-                       torch.Tensor(args[3][0]), torch.Tensor(args[3][1]))
+                       torch.Tensor(args[3][0]), torch.Tensor(args[3][1]),
+                       torch.Tensor(np.array(args[4]['dt'])), torch.Tensor(np.array(args[4]['rewarding'])))
     return transition_args
 
 
@@ -21,7 +22,8 @@ class ReplayMemory():
         self.Transition = namedtuple('Transition',
                                      ('init_map', 'init_mental_state', 'states_params',
                                       'goal_map', 'reward',
-                                      'next_map', 'next_mental_state'))
+                                      'next_map', 'next_mental_state',
+                                      'dt', 'rewarding'))
         self.max_len = int(capacity)
         if checkpoint_memory is None:
             self.experience_index = 0
